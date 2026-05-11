@@ -1,5 +1,5 @@
 import { useAuth } from './hooks/useAuth';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
