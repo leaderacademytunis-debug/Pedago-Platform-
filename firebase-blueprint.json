@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "school"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "TeacherProfile": {
+      "title": "Teacher Profile",
+      "description": "Detailed profile for teachers",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "specialization": { "type": "string" },
+        "yearsOfExperience": { "type": "number" },
+        "cvUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "specialization", "yearsOfExperience"]
+    },
+    "SchoolProfile": {
+      "title": "School Profile",
+      "description": "Detailed profile for schools",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string" },
+        "directorName": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["schoolName", "directorName", "email"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User authentication and role mapping"
+    },
+    "/teachers/{teacherId}": {
+      "schema": "TeacherProfile",
+      "description": "Publicly searchable teacher profiles (for schools)"
+    },
+    "/schools/{schoolId}": {
+      "schema": "SchoolProfile",
+      "description": "Private school director profiles"
+    }
+  }
+}

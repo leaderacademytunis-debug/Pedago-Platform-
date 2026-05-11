@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    function isTeacher() {
+      return isSignedIn() && isEmailVerified() && getUserRole(request.auth.uid) == 'teacher';
+    }
+
+    function isSchool() {
+      return isSignedIn() && isEmailVerified() && getUserRole(request.auth.uid) == 'school';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'leaderacademy216@gmail.com' && isEmailVerified();
+    }
+
+    // --- Validation Helpers ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt']) 
+        && data.keys().size() == 3
+        && data.email is string && data.email.size() <= 100
+        && data.role in ['teacher', 'school']
+        && data.createdAt == request.time;
+    }
+
+    function isValidTeacher(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'specialization', 'yearsOfExperience', 'cvUrl', 'createdAt'])
+        && data.keys().size() == 7
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100
+        && data.email is string && data.email == request.auth.token.email
+        && data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 20
+        && data.specialization is string && data.specialization.size() <= 50
+        && data.yearsOfExperience is number && data.yearsOfExperience >= 0 && data.yearsOfExperience <= 60
+        && data.cvUrl is string && data.cvUrl.size() <= 1000
+        && data.createdAt == request.time;
+    }
+
+    function isValidSchool(data) {
+      return data.keys().hasAll(['schoolName', 'directorName', 'email', 'createdAt'])
+        && data.keys().size() == 4
+        && data.schoolName is string && data.schoolName.size() >= 2 && data.schoolName.size() <= 200
+        && data.directorName is string && data.directorName.size() >= 2 && data.directorName.size() <= 100
+        && data.email is string && data.email == request.auth.token.email
+        && data.createdAt == request.time;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && isEmailVerified() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if false; // Role and email are immutable for security
+      allow delete: if false;
+    }
+
+    match /teachers/{teacherId} {
+      // Schools can list and read, Teachers can read their own
+      allow get: if (isSchool() || (isSignedIn() && request.auth.uid == teacherId) || isAdmin()) && isValidId(teacherId);
+      allow list: if (isSchool() || isAdmin()); 
+
+      allow create: if isTeacher() && request.auth.uid == teacherId && isValidTeacher(incoming());
+      
+      allow update: if (isSignedIn() && request.auth.uid == teacherId && (
+        (incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'specialization', 'yearsOfExperience', 'cvUrl']))
+        && isValidTeacher(incoming())
+      )) || isAdmin();
+
+      allow delete: if (isSignedIn() && request.auth.uid == teacherId) || isAdmin();
+    }
+
+    match /schools/{schoolId} {
+      allow get: if (isSignedIn() && request.auth.uid == schoolId) || isAdmin();
+      allow create: if isSchool() && request.auth.uid == schoolId && isValidSchool(incoming());
+      allow update: if (isSignedIn() && request.auth.uid == schoolId && (
+        (incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'directorName']))
+        && isValidSchool(incoming())
+      )) || isAdmin();
+      allow delete: if (isSignedIn() && request.auth.uid == schoolId) || isAdmin();
+    }
+  }
+}
