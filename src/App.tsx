@@ -139,7 +139,21 @@ export default function App() {
       setView('teacher');
     }
   }, [profile]);
-
+// 👇👇👇 أضف هذا الكود السحري هنا 👇👇👇
+  useEffect(() => {
+    // إذا تم تسجيل الدخول بنجاح بواسطة جوجل وكنا لا نزال في الخطوة 1
+    if (user && step === 1) {
+      setStep(2); // النقل الفوري للخطوة 2
+      
+      // هدية: التعبئة التلقائية لاسم المعلم وإيميله من حساب جوجل!
+      setFormData(prev => ({
+        ...prev,
+        email: prev.email || user.email || '',
+        fullName: prev.fullName || user.displayName || ''
+      }));
+    }
+  }, [user, step]);
+  // 👆👆👆 نهاية الكود المضاف 👆👆👆
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center">
