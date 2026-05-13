@@ -126,6 +126,30 @@ export default function App() {
     specialization: '',
     experience: '',
     cv: null
+    // Auto-switch view based on profile role
+  useEffect(() => {
+    if (profile?.role === 'school') {
+      setView('school');
+    } else if (profile?.role === 'teacher') {
+      setView('teacher');
+    }
+  }, [profile]);
+
+  // 👇👇👇 أضف هذا الكود السحري هنا 👇👇👇
+  useEffect(() => {
+    // إذا تم تسجيل الدخول بنجاح بواسطة جوجل وكنا لا نزال في الخطوة 1
+    if (user && step === 1) {
+      setStep(2); // النقل الفوري للخطوة 2
+      
+      // هدية: التعبئة التلقائية لاسم المعلم وإيميله من حساب جوجل!
+      setFormData(prev => ({
+        ...prev,
+        email: prev.email || user.email || '',
+        fullName: prev.fullName || user.displayName || ''
+      }));
+    }
+  }, [user, step]);
+  // 👆👆👆 نهاية الكود المضاف 👆👆👆
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
